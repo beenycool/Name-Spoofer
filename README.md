@@ -5,7 +5,7 @@
 ![GitHub issues](https://img.shields.io/github/issues/TheExploration/name-spoofer)
 # Name-Spoofer
 
-For Forge 1.8.9 
+For Fabric 1.21
 
 Change **ANY** text displayed on your screen visually. 
 

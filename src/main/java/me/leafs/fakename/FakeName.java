@@ -1,36 +1,29 @@
 package me.leafs.fakename;
 
-import lombok.Getter;
 import me.leafs.fakename.commands.NameHandler;
 import me.leafs.fakename.commands.Remove;
 import me.leafs.fakename.commands.SpoofFirst;
 import me.leafs.fakename.commands.SpoofSecond;
-import net.minecraftforge.client.ClientCommandHandler;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import me.leafs.fakename.utils.SpoofStorage;
+import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.loader.api.FabricLoader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@Mod(modid = "name-spoofer", name = "Name Spoofer", version = "1.4")
-public class FakeName {
-    @Mod.Instance
-    public static FakeName instance;
+public class FakeName implements ClientModInitializer {
+    public static final String MOD_ID = "name_spoofer";
+    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    @Mod.EventHandler
-    public void preInit(FMLPreInitializationEvent event) {
-     	
+    @Override
+    public void onInitializeClient() {
+        SpoofStorage.init(FabricLoader.getInstance().getConfigDir());
 
-        //create the config handler with the recommended config file
-    	NameHandler.ReadConfig(event.getSuggestedConfigurationFile());
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
+            NameHandler.register(dispatcher);
+            Remove.register(dispatcher);
+            SpoofFirst.register(dispatcher);
+            SpoofSecond.register(dispatcher);
+        });
     }
-   
-
-    @Mod.EventHandler
-    public void init(FMLInitializationEvent event) {
-        // register the handler command
-        ClientCommandHandler.instance.registerCommand(new NameHandler());
-        ClientCommandHandler.instance.registerCommand(new Remove());
-        ClientCommandHandler.instance.registerCommand(new SpoofFirst());
-        ClientCommandHandler.instance.registerCommand(new SpoofSecond());
-    }
-
 }

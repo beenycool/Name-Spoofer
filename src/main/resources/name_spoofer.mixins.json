@@ -3,7 +3,7 @@
   "package": "me.leafs.fakename.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "LiteralTextContentMixin",
+    "PlainTextContentMixin",
     "TextRendererMixin"
   ],
   "injectors": {

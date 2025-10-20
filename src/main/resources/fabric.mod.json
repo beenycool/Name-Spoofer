@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "name_spoofer",
+  "version": "${version}",
+  "name": "Name Spoofer",
+  "description": "Change any text displayed on your screen visually.",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "me.leafs.fakename.FakeName"
+    ]
+  },
+  "mixins": [
+    "name_spoofer.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.11",
+    "minecraft": "1.21.x",
+    "fabric": "*"
+  },
+  "authors": [
+    "TheExploration"
+  ],
+  "license": "MIT"
+}

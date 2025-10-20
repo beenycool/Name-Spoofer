@@ -1,73 +1,54 @@
+plugins {
+    id 'fabric-loom' version '1.7'
+    id 'maven-publish'
+}
 
-// For those who want the bleeding edge
-buildscript {
-    repositories {
-        jcenter()
-        maven {
-            name = "forge"
-            url = "https://maven.minecraftforge.net/"
-        }
-        maven {
-            name = "jitpack"
-            url = "https://jitpack.io/"
-        }
-    }
-    dependencies {
-        classpath "com.github.asbyth:ForgeGradle:6f53277"
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+java {
+    withSourcesJar()
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
     }
 }
-apply plugin: 'net.minecraftforge.gradle.forge'
 
-String modid = "name-spoofer"
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 21
+}
 
-version = "1.4"
-group = "me.leafs"
-archivesBaseName = modid
-
-sourceCompatibility = targetCompatibility = 1.8 // use java8
-compileJava.options.encoding = "UTF-8"
-
-configurations {
-    externalLibs
-
+repositories {
+    maven { url = 'https://maven.fabricmc.net/' }
+    mavenCentral()
 }
 
 dependencies {
-    compileOnly 'org.projectlombok:lombok:1.18.12'
-    externalLibs files('libs/jackson-core-2.13.2.jar', 'libs/jackson-annotations-2.13.2.jar', 'libs/jackson-databind-2.13.2.2.jar')
-    annotationProcessor 'org.projectlombok:lombok:1.18.12'
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 }
 
-minecraft {
-    version = "1.8.9-11.15.1.2318-1.8.9"
-    runDir = "run"
-
-    mappings = "stable_22"
+loom {
+    splitEnvironmentSourceSets()
 }
 
 processResources {
-    // this will ensure that this task is redone when the versions change.
-    inputs.property "version", project.version
-    inputs.property "mcversion", project.minecraft.version
+    inputs.property 'version', project.version
 
-    // replace stuff in mcmod.info, nothing else
-    from(sourceSets.main.resources.srcDirs) {
-        include 'mcmod.info'
-
-        // replace version and mcversion
-        expand 'version':project.version, 'mcversion':project.minecraft.version
-    }
-
-    // copy everything else, thats not the mcmod.info
-    from(sourceSets.main.resources.srcDirs) {
-        exclude 'mcmod.info'
+    filesMatching('fabric.mod.json') {
+        expand 'version': project.version
     }
 }
 
-jar {
-    manifest {
-        attributes "FMLCorePlugin": "me.leafs.fakename.asm.FMLLoadingPlugin",
-                "FMLCorePluginContainsFMLMod": true,
-                "ModSide": "CLIENT"
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
     }
 }

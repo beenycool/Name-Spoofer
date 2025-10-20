@@ -1,48 +1,44 @@
 package me.leafs.fakename.utils;
 
-import java.util.Set;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
-import com.mojang.authlib.GameProfile;
-import me.leafs.fakename.FakeName;
-import me.leafs.fakename.commands.NameHandler;
-import me.leafs.fakename.commands.Remove;
-import net.minecraft.client.Minecraft;
-import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.Formatting;
 
-public class NameUtils {
-    @SuppressWarnings("unused") // it is used :(
+public final class NameUtils {
+    private NameUtils() {
+    }
+
     public static String apply(String input) {
-
-        if (NameHandler.targets.isEmpty()) {
-        	return input;
+        if (input == null || input.isEmpty()) {
+            return input;
         }
 
-        if (input == null) {
-            return input; // don't proceed if the fakeName or input isn't set
+        Map<String, String> targets = new LinkedHashMap<>(SpoofStorage.getTargets());
+        if (targets.isEmpty()) {
+            return input;
         }
-        
-        Set<String> setOfKeys = NameHandler.targets.keySet();
-        for (String realName : setOfKeys) {
-        	if (!input.contains(realName)) {
+
+        String result = input;
+        for (Map.Entry<String, String> entry : targets.entrySet()) {
+            String realName = entry.getKey();
+            if (realName == null || realName.isEmpty() || !result.contains(realName)) {
                 continue;
-            }       
-        	String fakeName =  NameHandler.targets.get(realName);
-        	if (fakeName == null) {
-        		continue;
-        	}
-            String colored = ChatUtils.color(fakeName);
-
-            // add reset code to prevent color
-            if (!colored.equals(fakeName)) {
-                // TODO: 9/21/2020 make this better
-                colored += EnumChatFormatting.RESET;
             }
-            // return the input with the real name replaced
-        	input = input.replace(realName, colored);
-        }
-        
-        return input;
 
-        
+            String fakeName = entry.getValue();
+            if (fakeName == null) {
+                fakeName = "";
+            }
+
+            String colored = ChatUtils.color(fakeName);
+            if (!colored.equals(fakeName) && !colored.isEmpty()) {
+                colored += Formatting.RESET;
+            }
+
+            result = result.replace(realName, colored);
+        }
+
+        return result;
     }
 }

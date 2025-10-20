@@ -14,9 +14,8 @@ public final class SpoofFirst {
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
         dispatcher.register(ClientCommandManager.literal("spooffirst")
             .executes(context -> {
-                SpoofStorage.clearTargets();
-                ChatUtils.printChat("&7All names have been&d reset&7. To use, type &b/spoof <name> or <target> <name>");
-                return 1;
+                ChatUtils.printChat("&cUsage: /spooffirst <target>");
+                return 0;
             })
             .then(ClientCommandManager.argument("target", StringArgumentType.greedyString())
                 .executes(context -> {

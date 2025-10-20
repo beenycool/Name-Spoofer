@@ -14,17 +14,13 @@ public final class NameHandler {
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
         dispatcher.register(ClientCommandManager.literal("spoof")
             .executes(context -> {
-                SpoofStorage.clearTargets();
-                ChatUtils.printChat("&7All names have been&d reset&7. To use, type &b/spoof <name> or <target> <name>");
-                return 1;
+                return clearTargets();
             })
             .then(ClientCommandManager.argument("input", StringArgumentType.greedyString())
                 .executes(context -> {
                     String input = StringArgumentType.getString(context, "input").trim();
                     if (input.isEmpty()) {
-                        SpoofStorage.clearTargets();
-                        ChatUtils.printChat("&7All names have been&d reset&7. To use, type &b/spoof <name> or <target> <name>");
-                        return 1;
+                        return clearTargets();
                     }
 
                     int spaceIndex = input.indexOf(' ');
@@ -52,5 +48,11 @@ public final class NameHandler {
                     return 1;
                 }))
         );
+    }
+
+    private static int clearTargets() {
+        SpoofStorage.clearTargets();
+        ChatUtils.printChat("&7All names have been&d reset&7. To use, type &b/spoof <name> or <target> <name>");
+        return 1;
     }
 }

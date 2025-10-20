@@ -14,9 +14,8 @@ public final class SpoofSecond {
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
         dispatcher.register(ClientCommandManager.literal("spoofsecond")
             .executes(context -> {
-                SpoofStorage.clearTargets();
-                ChatUtils.printChat("&7All names have been&d reset&7. To use, type &b/spoof <name> or <target> <name>");
-                return 1;
+                ChatUtils.printChat("&cUsage: /spoofsecond <replacement>");
+                return 0;
             })
             .then(ClientCommandManager.argument("replacement", StringArgumentType.greedyString())
                 .executes(context -> {

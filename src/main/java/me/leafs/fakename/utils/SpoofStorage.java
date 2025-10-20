@@ -51,7 +51,6 @@ public final class SpoofStorage {
 
     public static synchronized void setPendingTarget(String target) {
         pendingTarget = target;
-        save();
     }
 
     public static synchronized Optional<String> getPendingTarget() {

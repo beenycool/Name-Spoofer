@@ -1,5 +1,6 @@
 package me.leafs.fakename.commands;
 
+import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import me.leafs.fakename.utils.ChatUtils;
@@ -18,25 +19,25 @@ public final class SpoofSecond {
                 return 0;
             })
             .then(ClientCommandManager.argument("replacement", StringArgumentType.greedyString())
-                .executes(context -> {
-                    return SpoofStorage.getPendingTarget()
-                        .map(target -> {
-                            String replacement = StringArgumentType.getString(context, "replacement").trim();
-                            if (replacement.isEmpty()) {
-                                SpoofStorage.setTarget(target, "");
-                                ChatUtils.printChat("&d" + target + "&7 has been hidden.");
-                                return 1;
-                            }
+                .executes(context -> SpoofStorage.getPendingTarget()
+                    .map(target -> {
+                        String replacement = StringArgumentType.getString(context, "replacement").trim();
+                        if (replacement.isEmpty()) {
+                            SpoofStorage.setTarget(target, "");
+                            SpoofStorage.setPendingTarget(null);
+                            ChatUtils.printChat("&d" + target + "&7 has been hidden.");
+                            return Command.SINGLE_SUCCESS;
+                        }
 
-                            SpoofStorage.setTarget(target, replacement);
-                            ChatUtils.printChat("&d" + target + "&7 has been set to &d" + replacement + "&7.");
-                            return 1;
-                        })
-                        .orElseGet(() -> {
-                            ChatUtils.printChat("&7spooffirst has not been set. Do &b/spooffirst <string>&7 before running this command.");
-                            return 0;
-                        });
-                }))
+                        SpoofStorage.setTarget(target, replacement);
+                        SpoofStorage.setPendingTarget(null);
+                        ChatUtils.printChat("&d" + target + "&7 has been set to &d" + replacement + "&7.");
+                        return Command.SINGLE_SUCCESS;
+                    })
+                    .orElseGet(() -> {
+                        ChatUtils.printChat("&7spooffirst has not been set. Do &b/spooffirst <string>&7 before running this command.");
+                        return 0;
+                    })))
         );
     }
 }

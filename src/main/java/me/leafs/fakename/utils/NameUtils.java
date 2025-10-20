@@ -1,5 +1,6 @@
 package me.leafs.fakename.utils;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import net.minecraft.util.Formatting;
@@ -13,7 +14,7 @@ public final class NameUtils {
             return input;
         }
 
-        Map<String, String> targets = SpoofStorage.getTargets();
+        Map<String, String> targets = new LinkedHashMap<>(SpoofStorage.getTargets());
         if (targets.isEmpty()) {
             return input;
         }

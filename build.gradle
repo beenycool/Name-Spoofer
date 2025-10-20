@@ -1,11 +1,10 @@
 plugins {
-    id 'fabric-loom' version '1.6-SNAPSHOT'
+    id 'fabric-loom' version '1.7'
     id 'maven-publish'
 }
 
 version = project.mod_version
 group = project.maven_group
-archivesBaseName = project.archives_base_name
 
 base {
     archivesName = project.archives_base_name

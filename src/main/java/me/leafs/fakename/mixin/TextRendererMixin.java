@@ -8,13 +8,18 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 @Mixin(TextRenderer.class)
 public abstract class TextRendererMixin {
-    @ModifyVariable(method = "draw(Ljava/lang/String;FFI)I", at = @At("HEAD"), argsOnly = true)
+    @ModifyVariable(method = "draw(Lnet/minecraft/client/util/math/MatrixStack;Ljava/lang/String;FFI)I", at = @At("HEAD"), argsOnly = true)
     private String nameSpoofer$modifyDrawString(String value) {
         return NameUtils.apply(value);
     }
 
-    @ModifyVariable(method = "drawWithShadow(Ljava/lang/String;FFI)I", at = @At("HEAD"), argsOnly = true)
+    @ModifyVariable(method = "drawWithShadow(Lnet/minecraft/client/util/math/MatrixStack;Ljava/lang/String;FFI)I", at = @At("HEAD"), argsOnly = true)
     private String nameSpoofer$modifyDrawWithShadow(String value) {
+        return NameUtils.apply(value);
+    }
+
+    @ModifyVariable(method = "drawWithShadow(Lnet/minecraft/client/util/math/MatrixStack;Ljava/lang/String;FFIZ)I", at = @At("HEAD"), argsOnly = true)
+    private String nameSpoofer$modifyDrawWithShadowBoolean(String value) {
         return NameUtils.apply(value);
     }
 

@@ -8,18 +8,17 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 @Mixin(TextRenderer.class)
 public abstract class TextRendererMixin {
-    @ModifyVariable(method = "draw(Lnet/minecraft/client/util/math/MatrixStack;Ljava/lang/String;FFI)I", at = @At("HEAD"), argsOnly = true)
-    private String nameSpoofer$modifyDrawString(String value) {
-        return NameUtils.apply(value);
-    }
-
-    @ModifyVariable(method = "drawWithShadow(Lnet/minecraft/client/util/math/MatrixStack;Ljava/lang/String;FFI)I", at = @At("HEAD"), argsOnly = true)
-    private String nameSpoofer$modifyDrawWithShadow(String value) {
-        return NameUtils.apply(value);
-    }
-
-    @ModifyVariable(method = "drawWithShadow(Lnet/minecraft/client/util/math/MatrixStack;Ljava/lang/String;FFIZ)I", at = @At("HEAD"), argsOnly = true)
-    private String nameSpoofer$modifyDrawWithShadowBoolean(String value) {
+    @ModifyVariable(
+            method = {
+                    "draw(Ljava/lang/String;FFIZLorg/joml/Matrix4f;Lnet/minecraft/client/render/VertexConsumerProvider;Lnet/minecraft/client/font/TextRenderer$TextLayerType;II)I",
+                    "draw(Ljava/lang/String;FFIZLorg/joml/Matrix4f;Lnet/minecraft/client/render/VertexConsumerProvider;Lnet/minecraft/client/font/TextRenderer$TextLayerType;IIZ)I",
+                    "drawInternal(Ljava/lang/String;FFIZLorg/joml/Matrix4f;Lnet/minecraft/client/render/VertexConsumerProvider;Lnet/minecraft/client/font/TextRenderer$TextLayerType;IIZ)I",
+                    "drawLayer(Ljava/lang/String;FFIZLorg/joml/Matrix4f;Lnet/minecraft/client/render/VertexConsumerProvider;Lnet/minecraft/client/font/TextRenderer$TextLayerType;II)F"
+            },
+            at = @At("HEAD"),
+            argsOnly = true
+    )
+    private String nameSpoofer$modifyDrawStrings(String value) {
         return NameUtils.apply(value);
     }
 

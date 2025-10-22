@@ -4,7 +4,9 @@ import me.leafs.fakename.commands.NameHandler;
 import me.leafs.fakename.commands.Remove;
 import me.leafs.fakename.commands.SpoofFirst;
 import me.leafs.fakename.commands.SpoofSecond;
+import me.leafs.fakename.commands.SpoofSkin;
 import me.leafs.fakename.utils.SpoofStorage;
+import me.leafs.fakename.utils.SkinSpoofStorage;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.loader.api.FabricLoader;
@@ -18,12 +20,14 @@ public class FakeName implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         SpoofStorage.init(FabricLoader.getInstance().getConfigDir());
+        SkinSpoofStorage.init(FabricLoader.getInstance().getConfigDir());
 
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             NameHandler.register(dispatcher);
             Remove.register(dispatcher);
             SpoofFirst.register(dispatcher);
             SpoofSecond.register(dispatcher);
+            SpoofSkin.register(dispatcher);
         });
     }
 }

@@ -6,9 +6,11 @@ import com.google.gson.reflect.TypeToken;
 import com.mojang.authlib.GameProfile;
 import me.leafs.fakename.FakeName;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.texture.AbstractTexture;
 import net.minecraft.client.texture.PlayerSkinProvider;
 import net.minecraft.client.util.SkinTextures;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.Util;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -17,6 +19,7 @@ import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -27,11 +30,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public final class SkinSpoofStorage {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Type MAP_TYPE = new TypeToken<Map<String, SkinEntry>>() { }
             .getType();
+    private static final String CONFIG_FILE_NAME = "name-spoofer-skins.json";
 
     private static final Map<String, SkinEntry> ENTRIES = new LinkedHashMap<>();
 
@@ -43,7 +48,7 @@ public final class SkinSpoofStorage {
     public static void init(Path configDir) {
         List<SkinEntry> loadedEntries;
         synchronized (SkinSpoofStorage.class) {
-            configPath = configDir.resolve("name-spoofer-skins.json");
+            configPath = configDir.resolve(CONFIG_FILE_NAME);
             loadedEntries = loadLocked();
         }
 
@@ -218,7 +223,13 @@ public final class SkinSpoofStorage {
         }
 
         try (Reader reader = Files.newBufferedReader(configPath, StandardCharsets.UTF_8)) {
-            Map<String, SkinEntry> data = GSON.fromJson(reader, MAP_TYPE);
+            Map<String, SkinEntry> data;
+            try {
+                data = GSON.fromJson(reader, MAP_TYPE);
+            } catch (RuntimeException parseError) {
+                FakeName.LOGGER.error("Malformed Name Spoofer skin config at path: {}", configPath, parseError);
+                return loaded;
+            }
             if (data == null) {
                 return loaded;
             }
@@ -235,7 +246,7 @@ public final class SkinSpoofStorage {
                 loaded.add(skinEntry);
             }
         } catch (IOException e) {
-            FakeName.LOGGER.error("Failed to read Name Spoofer skin config", e);
+            FakeName.LOGGER.error("Failed to read Name Spoofer skin config at path: {}", configPath, e);
         }
 
         return loaded;
@@ -262,11 +273,14 @@ public final class SkinSpoofStorage {
 
         try {
             Files.createDirectories(configPath.getParent());
-            try (Writer writer = Files.newBufferedWriter(configPath, StandardCharsets.UTF_8)) {
+            Path tmp = Files.createTempFile(configPath.getParent(), "name-spoofer-skins", ".json.tmp");
+            try (Writer writer = Files.newBufferedWriter(tmp, StandardCharsets.UTF_8)) {
                 GSON.toJson(unique, MAP_TYPE, writer);
             }
+
+            Files.move(tmp, configPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
         } catch (IOException e) {
-            FakeName.LOGGER.error("Failed to save Name Spoofer skin config", e);
+            FakeName.LOGGER.error("Failed to save Name Spoofer skin config to path: {}", configPath, e);
         }
     }
 
@@ -314,8 +328,13 @@ public final class SkinSpoofStorage {
             client.execute(() -> {
                 synchronized (SkinSpoofStorage.class) {
                     entry.update(textures, sourceProfile);
-                    saveLocked();
                 }
+
+                CompletableFuture.runAsync(() -> {
+                    synchronized (SkinSpoofStorage.class) {
+                        saveLocked();
+                    }
+                }, Util.getIoWorkerExecutor());
 
                 entry.finishRefreshing();
             });
@@ -461,7 +480,8 @@ public final class SkinSpoofStorage {
                 return;
             }
 
-            if (client.getTextureManager().getTexture(identifier) != null) {
+            AbstractTexture textureInstance = client.getTextureManager().getTexture(identifier);
+            if (textureInstance != null && textureInstance.getGlId() != 0) {
                 return;
             }
 

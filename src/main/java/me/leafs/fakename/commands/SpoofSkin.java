@@ -26,7 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 public final class SpoofSkin {
-    private static final Object REPOSITORY_LOCK = new Object();
+    private static final Object profileRepositoryLock = new Object();
 
     private static GameProfileRepository profileRepository;
 
@@ -43,10 +43,7 @@ public final class SpoofSkin {
                     SkinSpoofStorage.clear();
                     MinecraftClient client = context.getSource().getClient();
                     if (client != null) {
-                        client.execute(() -> {
-                            ChatUtils.printChat("&7All spoofed skins have been &dreset&7.");
-                            refreshRenderers(client);
-                        });
+                        client.execute(() -> ChatUtils.printChat("&7All spoofed skins have been &dreset&7."));
                     }
 
                     return Command.SINGLE_SUCCESS;
@@ -102,12 +99,11 @@ public final class SpoofSkin {
                 }
 
                 ChatUtils.printChat("&7Spoofed skin for &d" + describeProfile(result.target()) + " &7using &d" + describeProfile(result.skin()) + "&7.");
-                refreshRenderers(client);
             }))
             .exceptionally(error -> {
                 Throwable cause = unwrap(error);
                 FakeName.LOGGER.error("Failed to spoof skin for {} using {}", targetInput, skinInput, cause);
-                client.execute(() -> ChatUtils.printChat("&cUnable to spoof skin: &f" + formatError(cause)));
+                client.execute(() -> ChatUtils.printChat("&cUnable to spoof skin for &d" + targetInput + " &7using &d" + skinInput + "&c: &f" + formatError(cause)));
                 return null;
             });
     }
@@ -123,7 +119,6 @@ public final class SpoofSkin {
                 boolean removed = SkinSpoofStorage.remove(profile);
                 if (removed) {
                     ChatUtils.printChat("&7Cleared spoofed skin for &d" + describeProfile(profile) + "&7.");
-                    refreshRenderers(client);
                 } else {
                     ChatUtils.printChat("&cNo spoofed skin stored for &d" + describeProfile(profile) + "&c.");
                 }
@@ -133,7 +128,6 @@ public final class SpoofSkin {
                 client.execute(() -> {
                     if (removed) {
                         ChatUtils.printChat("&7Cleared spoofed skin for &d" + targetInput + "&7.");
-                        refreshRenderers(client);
                     } else {
                         ChatUtils.printChat("&cUnable to find spoofed skin entry for &d" + targetInput + "&c.");
                     }
@@ -156,6 +150,8 @@ public final class SpoofSkin {
             return CompletableFuture.failedFuture(new IllegalArgumentException("Name cannot be empty"));
         }
 
+        Proxy proxy = client == null ? Proxy.NO_PROXY : client.getNetworkProxy();
+
         GameProfile online = findOnlineProfile(client, trimmed);
         if (online != null) {
             if (requireUuid && online.getId() == null) {
@@ -170,7 +166,7 @@ public final class SpoofSkin {
             return CompletableFuture.supplyAsync(() -> resolveByUuid(client, uuid, trimmed), Util.getDownloadWorkerExecutor());
         }
 
-        return CompletableFuture.supplyAsync(() -> resolveByName(client, trimmed, requireUuid), Util.getDownloadWorkerExecutor());
+        return resolveByNameAsync(client, trimmed, requireUuid, proxy);
     }
 
     private static GameProfile resolveByUuid(MinecraftClient client, UUID uuid, String fallbackName) {
@@ -194,18 +190,18 @@ public final class SpoofSkin {
         return new GameProfile(uuid, fallbackName.isEmpty() ? null : fallbackName);
     }
 
-    private static GameProfile resolveByName(MinecraftClient client, String name, boolean requireUuid) {
-        GameProfileRepository repository = getProfileRepository(client);
+    private static CompletableFuture<GameProfile> resolveByNameAsync(MinecraftClient client, String name, boolean requireUuid, Proxy proxy) {
+        GameProfileRepository repository = getProfileRepository(proxy);
         if (repository == null) {
             if (requireUuid) {
-                throw new IllegalStateException("Unable to resolve profile for " + name);
+                return CompletableFuture.failedFuture(new IllegalStateException("Unable to resolve profile for " + name));
             }
 
-            return new GameProfile(null, name);
+            return CompletableFuture.completedFuture(new GameProfile(null, name));
         }
 
         CompletableFuture<GameProfile> future = new CompletableFuture<>();
-        repository.findProfilesByNames(new String[] { name }, new ProfileLookupCallback() {
+        CompletableFuture.runAsync(() -> repository.findProfilesByNames(new String[] { name }, new ProfileLookupCallback() {
             @Override
             public void onProfileLookupSucceeded(GameProfile profile) {
                 if (profile != null) {
@@ -223,28 +219,28 @@ public final class SpoofSkin {
                     future.completeExceptionally(new IllegalStateException("Profile lookup failed for " + profileName));
                 }
             }
-        });
+        }), Util.getDownloadWorkerExecutor());
 
-        try {
-            GameProfile profile = future.join();
-            if (profile.getName() == null || profile.getName().isEmpty()) {
-                profile = new GameProfile(profile.getId(), name);
+        return future.thenApply(profile -> {
+            GameProfile resolved = profile;
+            if (resolved.getName() == null || resolved.getName().isEmpty()) {
+                resolved = new GameProfile(resolved.getId(), name);
             }
 
-            if (requireUuid && profile.getId() == null) {
-                throw new IllegalStateException("Unable to resolve UUID for " + name);
+            if (requireUuid && resolved.getId() == null) {
+                throw new CompletionException(new IllegalStateException("Unable to resolve UUID for " + name));
             }
 
-            return profile;
-        } catch (CompletionException exception) {
-            Throwable cause = exception.getCause() == null ? exception : exception.getCause();
+            return resolved;
+        }).exceptionally(error -> {
+            Throwable cause = unwrap(error);
             if (requireUuid) {
-                throw cause instanceof RuntimeException ? (RuntimeException) cause : new IllegalStateException("Failed to resolve profile for " + name, cause);
+                throw cause instanceof RuntimeException ? (RuntimeException) cause : new CompletionException(new IllegalStateException("Failed to resolve profile for " + name, cause));
             }
 
             FakeName.LOGGER.warn("Falling back to name-only spoof for {}", name, cause);
             return new GameProfile(null, name);
-        }
+        });
     }
 
     private static GameProfile findOnlineProfile(MinecraftClient client, String input) {
@@ -259,26 +255,39 @@ public final class SpoofSkin {
     }
 
     private static UUID parseUuid(String input) {
+        if (input == null) {
+            return null;
+        }
+
+        String trimmed = input.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+
         try {
-            return UUID.fromString(input);
+            return UUID.fromString(trimmed);
         } catch (IllegalArgumentException ignored) {
+            if (trimmed.length() == 32 && trimmed.matches("(?i)[0-9a-f]{32}")) {
+                String dashed = trimmed.replaceFirst("(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{12})", "$1-$2-$3-$4-$5");
+                try {
+                    return UUID.fromString(dashed);
+                } catch (IllegalArgumentException ignored2) {
+                    return null;
+                }
+            }
+
             return null;
         }
     }
 
-    private static GameProfileRepository getProfileRepository(MinecraftClient client) {
-        synchronized (REPOSITORY_LOCK) {
+    private static GameProfileRepository getProfileRepository(Proxy proxy) {
+        synchronized (profileRepositoryLock) {
             if (profileRepository == null) {
-                Proxy proxy = client == null ? Proxy.NO_PROXY : client.getNetworkProxy();
-                profileRepository = new YggdrasilAuthenticationService(proxy).createProfileRepository();
+                profileRepository = new YggdrasilAuthenticationService(proxy == null ? Proxy.NO_PROXY : proxy).createProfileRepository();
             }
         }
 
         return profileRepository;
-    }
-
-    private static void refreshRenderers(MinecraftClient client) {
-        client.reloadResourcesConcurrently();
     }
 
     private static String describeProfile(GameProfile profile) {

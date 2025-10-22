@@ -42,3 +42,13 @@ jobs:
 
       - name: Run Gradle task
         run: ./gradlew $GRADLE_TASK
+
+      - name: Upload build artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            build/libs/
+            build/reports/tests/
+          if-no-files-found: warn

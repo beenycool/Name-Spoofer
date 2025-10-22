@@ -4,7 +4,9 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "PlainTextContentMixin",
-    "TextRendererMixin"
+    "TextRendererMixin",
+    "AbstractClientPlayerEntityMixin",
+    "PlayerListEntryMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -31,6 +31,16 @@ A revamp of fakenames by [ayleafs](https://github.com/ayleafs/fake-names) (Heavi
 - `/remove <target>` - Hides the string `<target>`. (Can have spaces)
 - `/spooffirst <target>` - Used with `/spoofsecond`. (Can have spaces as long as it's the same color.)
 - `/spoofsecond <target>` - Changes whatever string that is set as spooffirst to `<target>`. (Can have spaces)
+- `/spoofskin help` - Shows usage information for skin overrides.
+- `/spoofskin reset` - Clears every saved skin override.
+- `/spoofskin reset <target>` - Removes the override for a specific player.
+- `/spoofskin <target> <skin>` - Replaces `<target>`'s appearance with `<skin>`'s skin (both accept usernames or UUIDs).
+
+### Skin Spoofing
+
+`/spoofskin` downloads the requested skin through Mojang's profile services and registers it locally. Overrides persist between sessions and are stored in the mod configuration directory so your chosen disguises will reload the next time you start the game. Changes trigger a resource reload to update player renderers immediately.
+
+Skin spoofing depends on real Mojang profiles. If the skin name cannot be resolved to a UUID the command falls back to name-only storage, which means the override will only match by exact username. Private or rate-limited profiles might fail to download; in those cases the command reports the error and keeps your previous skin.
 
 NOTE: THESE APPLY TO ANY TEXT THAT APPEARS ON YOUR SCREEN (Also only & color code tags on changed text. Colored text can be spoofed without using & to specify the color.)
 
